@@ -1,4 +1,4 @@
-name: Docker Compose CI Pipeline
+name: Multi-Service CI Pipeline
 
 on:
   push:
@@ -7,39 +7,88 @@ on:
     branches: [ main ]
 
 jobs:
-  test-stack:
-    name: Build & Test 4-Container Stack
+  # 🐍 1. KUTUCUK: Python API Testi
+  python-test:
+    name: "🐍 Python Service Check"
     runs-on: ubuntu-latest
-
     steps:
-      - name: 1. Kodu Çek (Checkout)
+      - name: Kodu Çek
         uses: actions/checkout@v4
 
-      - name: 2. Docker Konteynerlerini Ayağa Kaldır
-        run: |
-          docker compose up -d --build
+      - name: Python 3.11 Ortamını Kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: "api/requirements.txt"
 
-      - name: 3. Servislerin Başlamasını Bekle (10 sn)
+      - name: Bağımlılıkları Yükle
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api/requirements.txt
+
+      - name: Python Kod Sentaks ve İçe Aktarma Kontrolü
+        run: |
+          python -m py_compile api/main.py
+          echo "Python kodları hatasız derlendi! ✅"
+
+  # 🟩 2. KUTUCUK: Node.js Frontend Testi
+  nodejs-test:
+    name: "🟩 Node.js Frontend Check"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu Çek
+        uses: actions/checkout@v4
+
+      - name: Node.js 20 Ortamını Kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "frontend/package.json"
+
+      - name: Paketleri Yükle (npm install)
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Node.js Sentaks Kontrolü
+        working-directory: ./frontend
+        run: |
+          node -c server.js
+          echo "Node.js sunucu kodu hatasız! ✅"
+
+  # 🐳 3. KUTUCUK: 4 Konteynerlik Uçtan Uca Docker Testi
+  docker-stack-e2e:
+    name: "🐳 4-Container Docker Stack E2E"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu Çek
+        uses: actions/checkout@v4
+
+      - name: Docker Konteynerlerini Ayağa Kaldır
+        run: docker compose up -d --build
+
+      - name: Konteynerlerin Hazır Olmasını Bekle (10 sn)
         run: sleep 10
 
-      - name: 4. Konteyner Durumlarını Listele
+      - name: Servislerin Durumunu Listele
         run: docker compose ps
 
-      - name: 5. Python API & Veritabanı Sağlık Kontrolü
+      - name: API & Veritabanı Sağlık Kontrolü
         run: |
           echo "API Test Ediliyor..."
           curl -f http://localhost:8000/ || exit 1
 
-      - name: 6. Redis Önbellek Sayacı Testi
+      - name: Redis Önbellek Sayacı Testi
         run: |
           echo "Redis Sayacı Test Ediliyor..."
           curl -f http://localhost:8000/cache-test || exit 1
 
-      - name: 7. Node.js Frontend Kontrolü
+      - name: Frontend Erişilebilirlik Testi
         run: |
           echo "Frontend Test Ediliyor..."
           curl -f http://localhost:3000/ || exit 1
 
-      - name: 8. Konteynerleri Temiz Kapat
+      - name: Konteynerleri Kapat
         if: always()
         run: docker compose down
