@@ -1,0 +1,45 @@
+name: Docker Compose CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-stack:
+    name: Build & Test 4-Container Stack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Kodu Çek (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 2. Docker Konteynerlerini Ayağa Kaldır
+        run: |
+          docker compose up -d --build
+
+      - name: 3. Servislerin Başlamasını Bekle (10 sn)
+        run: sleep 10
+
+      - name: 4. Konteyner Durumlarını Listele
+        run: docker compose ps
+
+      - name: 5. Python API & Veritabanı Sağlık Kontrolü
+        run: |
+          echo "API Test Ediliyor..."
+          curl -f http://localhost:8000/ || exit 1
+
+      - name: 6. Redis Önbellek Sayacı Testi
+        run: |
+          echo "Redis Sayacı Test Ediliyor..."
+          curl -f http://localhost:8000/cache-test || exit 1
+
+      - name: 7. Node.js Frontend Kontrolü
+        run: |
+          echo "Frontend Test Ediliyor..."
+          curl -f http://localhost:3000/ || exit 1
+
+      - name: 8. Konteynerleri Temiz Kapat
+        if: always()
+        run: docker compose down
