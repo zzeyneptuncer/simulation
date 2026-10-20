@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Mimarisi İzleme Paneli</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .card { background: #1e293b; border-radius: 12px; padding: 28px; width: 100%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; }
+    h1 { font-size: 24px; margin-bottom: 8px; color: #38bdf8; text-align: center; }
+    p.sub { text-align: center; color: #94a3b8; margin-bottom: 24px; font-size: 14px; }
+    .node-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; margin-bottom: 12px; border-radius: 8px; background: #0f172a; border: 1px solid #334155; }
+    .node-name { font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; background: #15803d; color: #dcfce7; }
+    .btn { display: block; width: 100%; padding: 12px; margin-top: 20px; background: #0284c7; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn:hover { background: #0369a1; }
+    .counter-box { margin-top: 18px; text-align: center; padding: 16px; background: #0f172a; border-radius: 8px; border: 1px dashed #38bdf8; }
+    .counter-value { font-size: 32px; font-weight: bold; color: #38bdf8; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚀 4 Konteynerlik Sistem Paneli</h1>
+    <p class="sub">PostgreSQL • Redis • Python API • Node.js Frontend</p>
+
+    <div class="node-item">
+      <div class="node-name">🌐 1. Frontend (Node.js)</div>
+      <div class="status-badge">Aktif (Port 3000)</div>
+    </div>
+
+    <div class="node-item">
+      <div class="node-name">⚡ 2. API (Python FastAPI)</div>
+      <div class="status-badge" id="api-status">Yükleniyor...</div>
+    </div>
+
+    <div class="node-item">
+      <div class="node-name">🐘 3. Veritabanı (PostgreSQL)</div>
+      <div class="status-badge" id="pg-status">Yükleniyor...</div>
+    </div>
+
+    <div class="node-item">
+      <div class="node-name">🔴 4. Önbellek (Redis Alpine)</div>
+      <div class="status-badge" id="redis-status">Yükleniyor...</div>
+    </div>
+
+    <div class="counter-box">
+      <div>Redis Belleğindeki Ziyaretçi Sayacı</div>
+      <div class="counter-value" id="visit-count">-</div>
+    </div>
+
+    <button class="btn" onclick="hitCounter()">Redis Sayacını Artır (+1)</button>
+  </div>
+
+  <script>
+    async function loadStatus() {
+      try {
+        const res = await fetch('/api/system-status');
+        const data = await res.json();
+        document.getElementById('api-status').innerText = 'Bağlantı Başarılı ✅';
+        document.getElementById('pg-status').innerText = data.postgresql_durumu || 'Hata';
+        document.getElementById('redis-status').innerText = data.redis_durumu || 'Hata';
+      } catch (e) {
+        document.getElementById('api-status').innerText = 'Hata ❌';
+      }
+    }
+
+    async function hitCounter() {
+      try {
+        const res = await fetch('/api/hit-cache');
+        const data = await res.json();
+        document.getElementById('visit-count').innerText = data.ziyaretci_sayisi;
+      } catch (e) {
+        alert('Sayaca ulaşılamadı');
+      }
+    }
+
+    loadStatus();
+    hitCounter();
+  </script>
+</body>
+</html>

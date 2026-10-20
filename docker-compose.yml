@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: stajyer
+      POSTGRES_PASSWORD: guclusifre123
+      POSTGRES_DB: staj_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - staj-network
+
+  redis:
+    image: redis:alpine
+    container_name: redis-cache
+    restart: always
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - staj-network
+
+  api:
+    build: ./api
+    container_name: python-api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_USER: stajyer
+      POSTGRES_PASSWORD: guclusifre123
+      POSTGRES_DB: staj_db
+      REDIS_HOST: redis
+    depends_on:
+      - db
+      - redis
+    networks:
+      - staj-network
+
+  frontend:
+    build: ./frontend
+    container_name: node-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      API_URL: http://api:8000
+    depends_on:
+      - api
+    networks:
+      - staj-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  staj-network:
+    driver: bridge
